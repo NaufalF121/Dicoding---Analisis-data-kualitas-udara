@@ -57,20 +57,14 @@ if page == "Peta sebaran stasiun":
 elif page == "Visualisasi Konsentrasi PM2.5":
     st.title("Visualisasi Konsentrasi PM2.5 pada tiap Stasiun")
 
-    # Select station
     station = st.selectbox("Pilih Stasiun", data['station'].unique())
 
-    # Filter data by station
     station_data = data[data['station'] == station]
-
-    # Ensure 'time' column is in datetime format
     station_data['time'] = pd.to_datetime(station_data['time'])
 
-    # Resample data by month and calculate the mean for numeric columns only
     numeric_columns = station_data.select_dtypes(include='number').columns
     monthly_data = station_data.resample('ME', on='time')[numeric_columns].mean().reset_index()
 
-    # Select time range by month
     min_time = monthly_data['time'].min()
     max_time = monthly_data['time'].max()
     min_month = min_time.to_period('M').start_time
@@ -80,13 +74,11 @@ elif page == "Visualisasi Konsentrasi PM2.5":
                            value=(min_month.to_pydatetime(), max_month.to_pydatetime()), 
                            format="MMM YYYY")
 
-    # Filter data by time range
     filtered_data = monthly_data[(monthly_data['time'] >= time_range[0]) & 
                                  (monthly_data['time'] <= time_range[1])]
 
-    # Plot data
     fig, ax = plt.subplots()
-    ax.plot(filtered_data['time'].dt.strftime('%b %Y'), filtered_data['PM2.5'], marker='o')
+    ax.plot(filtered_data['time'].dt.strftime('%b %Y'), filtered_data['PM2.5(µg/m³)'], marker='o')
     ax.set_xlabel('Time')
     ax.set_ylabel('Value')
     ax.set_title(f'Konsentrasi PM2.5 pada {station}')
@@ -96,31 +88,26 @@ elif page == "Visualisasi Konsentrasi PM2.5":
 
 elif page == "Detail Informasi Stasiun":
     st.title("Detail Informasi Stasiun")
-
-    # Select station
     station = st.selectbox("Pilih Stasiun", data['station'].unique())
-
-    # Ensure 'time' column is in datetime format
     data['time'] = pd.to_datetime(data['time'])
-
-    # Select date
     date = st.date_input("Pilih Tanggal", value=pd.to_datetime("2013-03-01"))
 
-    # Select hour
+
     hour = st.slider("Pilih Jam", min_value=0, max_value=23, value=12)
 
-    # Filter data by station, date, and hour
     data['date_str'] = data['time'].dt.strftime('%Y-%m-%d')
     data['hour'] = data['time'].dt.hour
     detail_data = data[(data['station'] == station) & 
                        (data['date_str'] == date.strftime('%Y-%m-%d')) & 
                        (data['hour'] == hour)]
-    WND = detail_data['wd'].values[0]
+    WND = ''
+    if not detail_data.empty:
+        WND = detail_data['wd'].values[0]
 
     if not detail_data.empty:
         st.write(f"Detail informasi untuk stasiun {station} pada tanggal {date.strftime('%Y-%m-%d')} jam {hour}:00: dengan arah angin {WND}")
 
-        # Get the previous hour's data for comparison
+        
         prev_time = pd.to_datetime(f"{date.strftime('%Y-%m-%d')} {hour}:00") - pd.Timedelta(hours=1)
         prev_data = data[(data['station'] == station) & 
                          (data['time'] == prev_time)]
